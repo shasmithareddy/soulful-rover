@@ -66,6 +66,21 @@ const JetRacerSimulator = () => {
   const stateRef = useRef(sim);
   stateRef.current = sim;
 
+  const speak = useCallback((text: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.1;
+      utterance.pitch = 1.4;
+      utterance.volume = 1;
+      // Try to pick a robotic-sounding voice
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v => v.name.includes('Google') || v.name.includes('English'));
+      if (preferred) utterance.voice = preferred;
+      window.speechSynthesis.speak(utterance);
+    }
+  }, []);
+
   const triggerState = useCallback((newState: BehaviorState) => {
     const responses = SPEECH_RESPONSES[newState];
     const bubble = responses ? responses[Math.floor(Math.random() * responses.length)] : null;
@@ -79,12 +94,14 @@ const JetRacerSimulator = () => {
       return { ...prev, state: newState, speechBubble: bubble, personality: p };
     });
 
+    // Speak the bubble text out loud
     if (bubble) {
+      speak(bubble);
       setTimeout(() => setSim(prev => ({ ...prev, speechBubble: null })), 2500);
     }
 
     setTimeout(() => setSim(prev => ({ ...prev, state: "ROAM" })), 3500);
-  }, []);
+  }, [speak]);
 
   // Canvas drawing
   useEffect(() => {
@@ -235,9 +252,14 @@ const JetRacerSimulator = () => {
           carY += Math.sin(carAngle) * 3;
         }
 
-        // Bounds
-        carX = Math.max(25, Math.min(475, carX));
-        carY = Math.max(25, Math.min(275, carY));
+        // Bounds — bounce off walls
+        const margin = 30;
+        const maxX = 470;
+        const maxY = 270;
+        if (carX <= margin) { carX = margin + 1; carAngle = Math.PI - carAngle; }
+        if (carX >= maxX) { carX = maxX - 1; carAngle = Math.PI - carAngle; }
+        if (carY <= margin) { carY = margin + 1; carAngle = -carAngle; }
+        if (carY >= maxY) { carY = maxY - 1; carAngle = -carAngle; }
 
         // Random person appearance
         if (!personDetected && Math.random() < 0.005) {
