@@ -66,6 +66,21 @@ const JetRacerSimulator = () => {
   const stateRef = useRef(sim);
   stateRef.current = sim;
 
+  const speak = useCallback((text: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.1;
+      utterance.pitch = 1.4;
+      utterance.volume = 1;
+      // Try to pick a robotic-sounding voice
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v => v.name.includes('Google') || v.name.includes('English'));
+      if (preferred) utterance.voice = preferred;
+      window.speechSynthesis.speak(utterance);
+    }
+  }, []);
+
   const triggerState = useCallback((newState: BehaviorState) => {
     const responses = SPEECH_RESPONSES[newState];
     const bubble = responses ? responses[Math.floor(Math.random() * responses.length)] : null;
@@ -79,12 +94,14 @@ const JetRacerSimulator = () => {
       return { ...prev, state: newState, speechBubble: bubble, personality: p };
     });
 
+    // Speak the bubble text out loud
     if (bubble) {
+      speak(bubble);
       setTimeout(() => setSim(prev => ({ ...prev, speechBubble: null })), 2500);
     }
 
     setTimeout(() => setSim(prev => ({ ...prev, state: "ROAM" })), 3500);
-  }, []);
+  }, [speak]);
 
   // Canvas drawing
   useEffect(() => {
