@@ -170,15 +170,19 @@ const JetRacerSimulator = () => {
       if (prevFrameRef.current) {
         let diff = 0;
         const a = cur.data, b = prevFrameRef.current.data;
-        for (let i = 0; i < a.length; i += 40) {
-          diff += Math.abs(a[i] - b[i]);
+        for (let i = 0; i < a.length; i += 16) {
+          diff += Math.abs(a[i] - b[i]) + Math.abs(a[i+1] - b[i+1]) + Math.abs(a[i+2] - b[i+2]);
         }
-        const motion = diff / (a.length / 40) / 255;
-        setSim(prev => ({ ...prev, motionLevel: motion, personDetected: motion > 0.05 }));
-        if (motion > 0.25 && stateRef.current.state === "ROAM") {
+        const motion = Math.min(1, diff / (a.length / 16) / 255 / 3);
+        const cur_state = stateRef.current.state;
+        const isIdle = cur_state === "ROAM" || cur_state === "COOLDOWN";
+        setSim(prev => ({ ...prev, motionLevel: motion, personDetected: motion > 0.02 }));
+        if (motion > 0.15 && isIdle) {
           triggerState("PANIC");
-        } else if (motion > 0.1 && motion <= 0.25 && stateRef.current.state === "ROAM" && Math.random() < 0.1) {
+        } else if (motion > 0.06 && isIdle && Math.random() < 0.4) {
           triggerState("CURIOUS");
+        } else if (motion > 0.03 && isIdle && Math.random() < 0.15) {
+          triggerState("GREETING");
         }
       }
       prevFrameRef.current = cur;
@@ -201,13 +205,14 @@ const JetRacerSimulator = () => {
       let txt = "";
       for (let i = e.resultIndex; i < e.results.length; i++) txt += e.results[i][0].transcript;
       setTranscript(txt);
-      if (e.results[e.results.length - 1].isFinal) {
+      const last = e.results[e.results.length - 1];
+      if (last.isFinal) {
         const intent = classifyIntent(txt);
-        if (intent) triggerState(intent);
+        triggerState(intent ?? "CURIOUS");
       }
     };
-    rec.onerror = () => {};
-    rec.onend = () => { if (micOn) try { rec.start(); } catch {} };
+    rec.onerror = (ev: any) => { console.warn("[mic]", ev.error); };
+    rec.onend = () => { if (micOn) { try { rec.start(); } catch {} } };
     try { rec.start(); } catch {}
     recognitionRef.current = rec;
     return () => { try { rec.stop(); } catch {} };
