@@ -205,13 +205,14 @@ const JetRacerSimulator = () => {
       let txt = "";
       for (let i = e.resultIndex; i < e.results.length; i++) txt += e.results[i][0].transcript;
       setTranscript(txt);
-      if (e.results[e.results.length - 1].isFinal) {
+      const last = e.results[e.results.length - 1];
+      if (last.isFinal) {
         const intent = classifyIntent(txt);
-        if (intent) triggerState(intent);
+        triggerState(intent ?? "CURIOUS");
       }
     };
-    rec.onerror = () => {};
-    rec.onend = () => { if (micOn) try { rec.start(); } catch {} };
+    rec.onerror = (ev: any) => { console.warn("[mic]", ev.error); };
+    rec.onend = () => { if (micOn) { try { rec.start(); } catch {} } };
     try { rec.start(); } catch {}
     recognitionRef.current = rec;
     return () => { try { rec.stop(); } catch {} };
