@@ -202,12 +202,19 @@ const JetRacerSimulator = () => {
     const rec = new SR();
     rec.continuous = true; rec.interimResults = true; rec.lang = "en-US";
     rec.onresult = (e: any) => {
-      let txt = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) txt += e.results[i][0].transcript;
-      setTranscript(txt);
+      let interim = "";
+      let finalTxt = "";
+      for (let i = 0; i < e.results.length; i++) {
+        const r = e.results[i];
+        if (r.isFinal) finalTxt += r[0].transcript + " ";
+        else interim += r[0].transcript;
+      }
+      const display = (finalTxt + interim).trim();
+      setTranscript(display);
       const last = e.results[e.results.length - 1];
-      if (last.isFinal) {
-        const intent = classifyIntent(txt);
+      if (last && last.isFinal) {
+        const phrase = last[0].transcript;
+        const intent = classifyIntent(phrase);
         triggerState(intent ?? "CURIOUS");
       }
     };
