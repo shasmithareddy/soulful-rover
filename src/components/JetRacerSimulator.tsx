@@ -54,19 +54,21 @@ const SPEECH_RESPONSES: Record<string, string[]> = {
   COOLDOWN: ["Need a sec to cool down.", "Recharging..."],
 };
 
-// Intent classifier — expanded keyword sets
+// Intent classifier — order = priority (high → low)
 const INTENT_KEYWORDS: Array<{ state: BehaviorState; words: string[] }> = [
-  { state: "FLATTERED", words: ["cool", "nice", "awesome", "cute", "amazing", "love", "great", "beautiful", "smart", "good boy", "good job", "well done"] },
-  { state: "COMFORT", words: ["sad", "tired", "bad", "upset", "lonely", "hurt", "cry", "depressed", "anxious", "stressed"] },
-  { state: "PANIC", words: ["stop", "no", "danger", "watch out", "careful", "ahh"] },
-  { state: "ANNOYED", words: ["shut up", "annoying", "go away", "leave me", "stupid", "dumb"] },
-  { state: "GREETING", words: ["hello", "hi", "hey", "greetings", "what's up", "howdy", "sup"] },
+  { state: "PANIC", words: ["stop", "danger", "watch out", "careful", "ahh", "look out", "freeze", "halt", "back off"] },
+  { state: "ANNOYED", words: ["shut up", "annoying", "go away", "leave me", "stupid", "dumb", "shut it", "quiet"] },
+  { state: "FLATTERED", words: ["cool", "nice", "awesome", "cute", "amazing", "love you", "love it", "great", "beautiful", "smart", "good boy", "good job", "well done", "you rock", "best", "wonderful", "brilliant", "clever"] },
+  { state: "COMFORT", words: ["sad", "tired", "feel bad", "upset", "lonely", "hurt", "cry", "depressed", "anxious", "stressed", "miss you", "alone"] },
   { state: "DANCE", words: ["dance", "music", "party", "groove", "beat", "sing"] },
+  { state: "GREETING", words: ["hello", "hi ", "hey", "greetings", "howdy", "good morning", "good evening"] },
   { state: "CURIOUS", words: ["what", "why", "how", "who", "where", "tell me", "explain"] },
 ];
 
 function classifyIntent(text: string): BehaviorState | null {
-  const t = text.toLowerCase();
+  const t = " " + text.toLowerCase().trim() + " ";
+  // "no" must be a standalone word, not "now/know"
+  if (/\b(no|stop)\b/.test(t)) return "PANIC";
   for (const { state, words } of INTENT_KEYWORDS) {
     if (words.some(w => t.includes(w))) return state;
   }
